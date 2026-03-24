@@ -70,6 +70,46 @@ def generate_window(
     return features
 
 
+def inject_synthetic_edge_cases(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Inject synthetic hard cases to improve decision boundary quality.
+    These are intentionally near overlap zones to improve precision/recall.
+    """
+    numeric_cols = [c for c in df.columns if c not in ["label", "scenario"]]
+    danger_pool = df[df["label"] == 1]
+    normal_pool = df[df["label"] == 0]
+
+    if len(danger_pool) < 100 or len(normal_pool) < 100:
+        return df
+
+    n_cases = max(200, int(0.04 * len(df)))
+    d = danger_pool.sample(n=n_cases, replace=True, random_state=2024).copy()
+    n = normal_pool.sample(n=n_cases, replace=True, random_state=2025).copy()
+
+    # Borderline danger: danger movement with partly safe rhythm.
+    borderline_danger = d.copy()
+    blend = np.random.uniform(0.25, 0.45, size=(n_cases, 1))
+    borderline_danger[numeric_cols] = (
+        borderline_danger[numeric_cols].values * (1.0 - blend)
+        + n[numeric_cols].values * blend
+    )
+    borderline_danger["scenario"] = "synthetic_borderline_danger"
+    borderline_danger["label"] = 1
+
+    # Hard negative: normal behavior with small danger-like perturbations.
+    hard_negative = n.copy()
+    blend2 = np.random.uniform(0.18, 0.35, size=(n_cases, 1))
+    hard_negative[numeric_cols] = (
+        hard_negative[numeric_cols].values * (1.0 - blend2)
+        + d[numeric_cols].values * blend2
+    )
+    hard_negative["scenario"] = "synthetic_hard_negative"
+    hard_negative["label"] = 0
+
+    out = pd.concat([df, borderline_danger, hard_negative], ignore_index=True)
+    return out
+
+
 def generate_scenario(scenario: str, n: int) -> list:
     data = []
 
@@ -437,6 +477,7 @@ def generate_dataset():
         all_data.extend(rows)
 
     df = pd.DataFrame(all_data)
+    df = inject_synthetic_edge_cases(df)
 
     # ── Data quality pipeline ──────────────────────────────────
     print("\n🔬 Data Quality Pipeline:")

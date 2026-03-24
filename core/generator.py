@@ -4,25 +4,34 @@ import os
 
 
 def generate_safety_data(num_samples=10000):
-    # This ensures we find the project root folder correctly
-    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # core/generator.py lives inside project_root/core, so parent is project root.
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    base_path = os.path.dirname(base_path)
     data_folder = os.path.join(base_path, 'data')
 
     # Create the data folder if it somehow disappeared
     if not os.path.exists(data_folder):
         os.makedirs(data_folder)
 
-    np.random.seed(42)
+    np.random.seed(2026)
     data = []
 
     for _ in range(num_samples):
         label = np.random.choice([0, 1])
         if label == 1:
-            speed, accel, jerk = np.random.uniform(15, 50), np.random.uniform(12, 25), np.random.uniform(5, 15)
-            risk_score, p_dist = np.random.uniform(0.7, 1.0), np.random.uniform(5, 15)
+            # Harder synthetic positives with partial overlap for realism.
+            speed = np.random.uniform(10, 42)
+            accel = np.random.uniform(10.5, 23)
+            jerk = np.random.uniform(3.5, 14)
+            risk_score = np.random.beta(6, 2)
+            p_dist = np.random.uniform(4, 15)
         else:
-            speed, accel, jerk = np.random.uniform(0, 5), np.random.uniform(9.0, 10.5), np.random.uniform(0, 2)
-            risk_score, p_dist = np.random.uniform(0, 0.3), np.random.uniform(0, 2)
+            # Hard negatives: occasionally elevated speed/accel but low risk profile.
+            speed = np.random.uniform(0, 18)
+            accel = np.random.uniform(8.6, 12.8)
+            jerk = np.random.uniform(0, 5.5)
+            risk_score = np.random.beta(2, 7)
+            p_dist = np.random.uniform(0, 8)
 
         data.append([speed, accel, jerk, risk_score, p_dist, label])
 

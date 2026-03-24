@@ -49,8 +49,13 @@ class ScreamDetector:
 
     def __init__(self):
         if os.path.exists(MODEL_PATH):
-            self.model = joblib.load(MODEL_PATH)
-            print(f"✅ Audio model loaded: {N_AUDIO_FEATURES} features expected")
+            try:
+                self.model = joblib.load(MODEL_PATH)
+                print(f"✅ Audio model loaded: {N_AUDIO_FEATURES} features expected")
+            except Exception as e:
+                self.model = None
+                print(f"⚠️  Audio model load failed: {e}")
+                print("   Re-train with: python -c \"import trainer; trainer.train_audio_model()\"")
         else:
             self.model = None
             print(f"⚠️  Audio model not found. Run trainer.py first.")
