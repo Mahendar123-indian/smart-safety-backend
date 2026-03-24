@@ -51,8 +51,13 @@ class MovementDetector:
     def __init__(self):
         # Load model
         if os.path.exists(MODEL_PATH):
-            self.model = joblib.load(MODEL_PATH)
-            print(f"✅ Movement model loaded: {N_MOVEMENT_FEATURES} features")
+            try:
+                self.model = joblib.load(MODEL_PATH)
+                print(f"✅ Movement model loaded: {N_MOVEMENT_FEATURES} features")
+            except Exception as e:
+                self.model = None
+                print(f"⚠️  Movement model load failed: {e}")
+                print("   Re-train with: python -c \"import trainer; trainer.train_movement_model()\"")
         else:
             self.model = None
             print(f"⚠️  Movement model not found. Run trainer.py first.")
